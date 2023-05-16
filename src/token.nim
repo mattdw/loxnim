@@ -1,6 +1,7 @@
-import loxtypes
 import std/strformat
 import options
+
+import loxtypes
 
 type
     Token* = object
@@ -17,4 +18,12 @@ proc newToken*(typ: TokenType, lexeme: string, literal: Option[LoxObj], line: in
     result.line = line
 
 proc `$`*(self: Token): string =
-    fmt"{$self.typ}({self.lexeme} {self.literal})"
+    case self.typ
+    of IDENTIFIER:
+        return fmt"ID({self.lexeme})"
+    of STRING:
+        return '"' & $LoxString(self.literal.get()).value & '"'
+    of NUMBER:
+        return $LoxNumber(self.literal.get()).value
+    else:
+        return $self.typ

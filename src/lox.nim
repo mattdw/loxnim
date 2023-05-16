@@ -1,6 +1,5 @@
 import std/os
 import system
-import std/strformat
 
 import loxtypes
 import scanner
