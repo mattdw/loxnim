@@ -1,4 +1,4 @@
-import loxtype
+import loxtypes
 import std/strformat
 
 proc report*(self: var Lox, line: int, where: string, message: string) =

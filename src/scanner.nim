@@ -1,10 +1,11 @@
 import std/strformat
+import std/parseutils
+import std/tables
 
-import tokentype
 import token
 import options
 import error
-import loxtype
+import loxtypes
 
 type
     Scanner* = object
@@ -13,6 +14,7 @@ type
         start: int
         current: int
         line: int
+
 
 proc newScanner*(source: string): Scanner =
     result.source = source
@@ -28,11 +30,11 @@ proc isAtEnd(self: Scanner): bool =
 proc scanToken(self: var Scanner): void
 
 proc scanTokens*(self: var Scanner): seq[Token] =
-    while self.isAtEnd() != false:
+    while not self.isAtEnd():
         self.start = self.current
         self.scanToken()
 
-    self.tokens.add(newToken(EOF, "", none(RootObj), self.line))
+    self.tokens.add(newToken(EOF, "", none(LoxObj), self.line))
     result = self.tokens
 
 proc advance(self: var Scanner): char =
@@ -44,6 +46,11 @@ proc peek(self: Scanner): char =
         return '\0'
     result = self.source[self.current]
 
+proc peekNext(self: Scanner): char =
+    if self.current + 1 >= self.source.len():
+        return '\0'
+    result = self.source[self.current + 1]
+
 proc match(self: var Scanner, expected: char): bool =
     if self.isAtEnd():
         return false
@@ -54,12 +61,12 @@ proc match(self: var Scanner, expected: char): bool =
     self.current += 1
     return true
 
-proc addToken(self: var Scanner, typ: TokenType, literal: Option[RootObj]) =
-    let text = self.source[self.start..self.current]
+proc addToken(self: var Scanner, typ: TokenType, literal: Option[LoxObj]) =
+    let text = self.source[self.start..(self.current - 1)]
     self.tokens.add(newToken(typ, text, literal, self.line))
 
 proc addToken(self: var Scanner, typ: TokenType) =
-    addToken(self, typ, none(RootObj))
+    addToken(self, typ, none(LoxObj))
 
 
 proc string(self: var Scanner) =
@@ -73,9 +80,48 @@ proc string(self: var Scanner) =
         return
 
     discard self.advance()
-    let value: string = self.source[self.start+1..self.current - 1]
-    self.addToken(STRING, value)
+    let value: string = self.source[self.start+1..(self.current - 2)]
+    self.addToken(STRING, some(LoxObj(newLoxString(value))))
 
+
+func isDigit(c: char): bool {.inline.} =
+    c in '0'..'9'
+
+proc number(self: var Scanner) =
+    while isDigit(self.peek()):
+        discard self.advance()
+
+    if self.peek() == '.' and isDigit(self.peekNext()):
+        discard self.advance()
+
+    while isDigit(self.peek()):
+        discard self.advance()
+
+    var num: float
+    let numslice = self.source[self.start..(self.current - 1)]
+    let res = parseFloat(numslice, num)
+
+    if res == 0:
+        error(loxObj, self.line, fmt"Bad num: {numslice}")
+    else:
+        self.addToken(NUMBER, some(LoxObj(newLoxNumber(num))))
+
+
+func isAlpha(c: char): bool {.inline.} =
+    c == '_' or c in 'A'..'Z' or c in 'a'..'z'
+
+func isAlphaNumeric(c: char): bool {.inline.} =
+    isAlpha(c) or isDigit(c)
+
+proc identifier(self: var Scanner) =
+    while isAlphaNumeric(self.peek()):
+        discard self.advance()
+
+    let text = self.source[self.start..(self.current - 1)]
+    if keywords.hasKey(text):
+        self.addToken(keywords[text])
+    else:
+        self.addToken(IDENTIFIER)
 
 proc scanToken(self: var Scanner): void =
     let c = self.advance()
@@ -106,6 +152,10 @@ proc scanToken(self: var Scanner): void =
         self.line += 1
     of '"':
         self.string()
+    of '0'..'9':
+        self.number()
+    of '_', 'A'..'Z', 'a'..'z':
+        self.identifier()
     else:
         error(loxObj, self.line, fmt"Unexpected character: {c}")
 

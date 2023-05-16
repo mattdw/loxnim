@@ -1,12 +1,16 @@
 import std/os
 import system
 import std/strformat
-import loxtype
+
+import loxtypes
+import scanner
+import token
 
 
 proc run(source: string) =
-    let scanner = newScanner(string)
-    let tokens = scanner.scanTokens()
+    var scanner = newScanner(source)
+    var tokens: seq[Token]
+    tokens = scanner.scanTokens()
 
     for token in tokens:
         echo token
@@ -30,10 +34,12 @@ proc runPrompt(self: var Lox) =
         self.hadError = false
 
 
-proc main(): void =
+proc main*(): void =
     let argc = paramCount()
     let argv = commandLineParams()
     var l = Lox()
+
+    echo commandLineParams()
 
     case argc
     of 1:
@@ -43,3 +49,5 @@ proc main(): void =
     else:
         quit(64)
     system.quit()
+
+main()

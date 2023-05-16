@@ -1,4 +1,4 @@
-import tokentype
+import loxtypes
 import std/strformat
 import options
 
@@ -6,15 +6,15 @@ type
     Token* = object
         typ: TokenType
         lexeme: string
-        literal: Option[RootObj]
+        literal: Option[LoxObj]
         line: int
 
 
-proc newToken*(typ: TokenType, lexeme: string, literal: Option[RootObj], line: int): Token =
+proc newToken*(typ: TokenType, lexeme: string, literal: Option[LoxObj], line: int): Token =
     result.typ = typ
     result.lexeme = lexeme
     result.literal = literal
     result.line = line
 
 proc `$`*(self: Token): string =
-    fmt"{$self.type} {self.lexeme} {self.literal}"
+    fmt"{$self.typ}({self.lexeme} {self.literal})"
