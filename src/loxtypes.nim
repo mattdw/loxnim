@@ -49,16 +49,10 @@ var loxObj*: Lox
 
 
 proc newLoxString*(v: string): LoxString =
-    var s: LoxString
-    new(s)
-    s.value = v
-    result = s
+    result = LoxString(value: v)
 
 proc newLoxNumber*(v: float): LoxNumber =
-    var n: LoxNumber
-    new(n)
-    n.value = v
-    result = n
+    result = LoxNumber(value: v)
 
 
 func `$`*(x: LoxNumber): string =
