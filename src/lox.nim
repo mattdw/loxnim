@@ -4,6 +4,8 @@ import system
 import loxtypes
 import scanner
 import token
+import parser
+import ast
 
 
 proc run(source: string) =
@@ -11,8 +13,16 @@ proc run(source: string) =
     var tokens: seq[Token]
     tokens = scanner.scanTokens()
 
-    for token in tokens:
-        echo token
+    var parser = newParser(tokens)
+    let exp = parser.parse()
+
+    if loxObj.hadError:
+        return
+
+    echo pp(exp)
+
+    # for token in tokens:
+    #     echo token
 
 proc runFile(self: Lox, path: string) =
     let bytes = readFile(path)

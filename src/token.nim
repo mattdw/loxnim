@@ -17,7 +17,21 @@ proc newToken*(typ: TokenType, lexeme: string, literal: Option[LoxObj], line: in
     result.literal = literal
     result.line = line
 
-proc `$`*(self: Token): string =
+# getters
+
+func lexeme*(t: Token): string {.inline.} =
+    t.lexeme
+
+func literal*(t: Token): Option[LoxObj] {.inline.} =
+    t.literal
+
+func typ*(t: Token): TokenType {.inline.} =
+    t.typ
+
+func line*(t: Token): int {.inline.} =
+    t.line
+
+proc `$`*(self: Token): string {.inline.} =
     case self.typ
     of IDENTIFIER:
         return fmt"ID({self.lexeme})"

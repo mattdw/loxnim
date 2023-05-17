@@ -22,6 +22,11 @@ type
     LoxNumber* = ref object of LoxObj
         value*: float
 
+    LoxBool* = ref object of LoxObj
+        value*: bool
+
+    LoxNil* = ref object of LoxObj
+
     Lox* = object
         hadError*: bool
 
@@ -47,7 +52,6 @@ const keywords* = {
 
 var loxObj*: Lox
 
-
 proc newLoxString*(v: string): LoxString =
     result = LoxString(value: v)
 
@@ -61,8 +65,20 @@ func `$`*(x: LoxNumber): string =
 func `$`*(x: LoxString): string =
     fmt"""`{x.value}`"""
 
+func `$`*(x: LoxBool): string =
+    $x.value
+
+func `$`*(x: LoxNil): string =
+    "nil"
+
+
 func `$`*(x: LoxObj): string =
     if x of LoxNumber:
         return $LoxNumber(x)
     if x of LoxString:
         return $LoxString(x)
+    if x of LoxBool:
+        return $LoxBool(x)
+    if x of LoxNil:
+        return $LoxNil(x)
+
