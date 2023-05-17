@@ -53,6 +53,29 @@ func isEqual(l: LoxObj, r: LoxObj): bool =
     return false
 
 
+func cmp[T](o: TokenType, l: T, r: T): bool =
+    case o
+    of GREATER:
+        return l > r
+    of GREATER_EQUAL:
+        return l >= r
+    of LESS:
+        return l < r
+    of LESS_EQUAL:
+        return l <= r
+    else:
+        discard
+
+func cmp(o: TokenType, l: LoxObj, r: LoxObj): bool =
+    if l of LoxNumber and r of LoxNumber:
+        return cmp[float](o, l.getNum(), r.getNum())
+    if l of LoxString and r of LoxString:
+        return cmp[string](o, l.getStr(), r.getStr())
+    if l of LoxBool and r of LoxBool:
+        return cmp[bool](o, LoxBool(l).value, LoxBool(r).value)
+
+    raise (ref TypeError)(msg: fmt"Can't compare different types {l} and {r}")
+
 method eval(exp: Expr): LoxObj {.base.} =
     raise (ref RuntimeError)(msg: "Reached LoxObj base eval!")
     LoxNil()
@@ -84,14 +107,16 @@ method eval(exp: Binary): LoxObj =
     let r = eval(exp.right)
 
     case exp.operator.typ
-    of GREATER:
-        return LoxBool(value: l.getNum() > r.getNum())
-    of GREATER_EQUAL:
-        return LoxBool(value: l.getNum() >= r.getNum())
-    of LESS:
-        return LoxBool(value: l.getNum() < r.getNum())
-    of LESS_EQUAL:
-        return LoxBool(value: l.getNum() <= r.getNum())
+    # of GREATER:
+    #     return LoxBool(value: l.getNum() > r.getNum())
+    # of GREATER_EQUAL:
+    #     return LoxBool(value: l.getNum() >= r.getNum())
+    # of LESS:
+    #     return LoxBool(value: l.getNum() < r.getNum())
+    # of LESS_EQUAL:
+    #     return LoxBool(value: l.getNum() <= r.getNum())
+    of GREATER, GREATER_EQUAL, LESS, LESS_EQUAL:
+        return LoxBool(value: cmp(exp.operator.typ, l, r))
     of BANG_EQUAL:
         return LoxBool(value: not isEqual(l, r))
     of EQUAL_EQUAL:
