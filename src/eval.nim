@@ -107,14 +107,6 @@ method eval(exp: Binary): LoxObj =
     let r = eval(exp.right)
 
     case exp.operator.typ
-    # of GREATER:
-    #     return LoxBool(value: l.getNum() > r.getNum())
-    # of GREATER_EQUAL:
-    #     return LoxBool(value: l.getNum() >= r.getNum())
-    # of LESS:
-    #     return LoxBool(value: l.getNum() < r.getNum())
-    # of LESS_EQUAL:
-    #     return LoxBool(value: l.getNum() <= r.getNum())
     of GREATER, GREATER_EQUAL, LESS, LESS_EQUAL:
         return LoxBool(value: cmp(exp.operator.typ, l, r))
     of BANG_EQUAL:
@@ -124,7 +116,10 @@ method eval(exp: Binary): LoxObj =
     of MINUS:
         return LoxNumber(value: l.getNum() - r.getNum())
     of SLASH:
-        return LoxNumber(value: l.getNum() / r.getNum())
+        let rf = r.getNum()
+        if rf == 0:
+            raise (ref ZeroDivError)()
+        return LoxNumber(value: l.getNum() / rf)
     of STAR:
         return LoxNumber(value: l.getNum() * r.getNum())
     of PLUS:

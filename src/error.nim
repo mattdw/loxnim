@@ -7,7 +7,7 @@ type
 
     RuntimeError* = object of CatchableError
     TypeError* = object of RuntimeError
-
+    ZeroDivError* = object of RuntimeError
 
 
 proc report*(self: var Lox, line: int, where: string, message: string) =
