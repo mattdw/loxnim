@@ -83,6 +83,16 @@ method eval(self: var LoxInterp, exp: Expr): LoxObj {.base.} =
 method eval(self: var LoxInterp, exp: Literal): LoxObj =
     exp.value
 
+method eval(self: var LoxInterp, exp: Logical): LoxObj =
+    let left = self.eval(exp.left)
+
+    if exp.operator.typ == TokenType.OR:
+        if isTruthy(left): return left
+    else:
+        if not isTruthy(left): return left
+
+    return self.eval(exp.right)
+
 method eval(self: var LoxInterp, exp: Variable): LoxObj =
     self.env.get(exp.name)
 
@@ -170,6 +180,16 @@ proc evalBlock(self: var LoxInterp, statements: seq[Stmt], env: Environment) =
 method eval(self: var LoxInterp, stmt: Block) =
     self.evalBlock(stmt.statements, newEnvironment(self.env))
     return
+
+method eval(self: var LoxInterp, stmt: IfStmt) =
+    if isTruthy(self.eval(stmt.condition)):
+        self.eval(stmt.thenBranch)
+    elif not stmt.elseBranch.isNil:
+        self.eval(stmt.elseBranch)
+
+method eval(self: var LoxInterp, stmt: WhileStmt) =
+    while isTruthy(self.eval(stmt.condition)):
+        self.eval(stmt.body)
 
 proc interpret*(self: var LoxInterp, statements: seq[Stmt]) =
     try:

@@ -127,8 +127,24 @@ proc equality(self: var Parser): Expr =
         let right: Expr = self.comparison()
         result = Binary(left: result, operator: operator, right: right)
 
+proc `and`(self: var Parser): Expr =
+    result = self.equality()
+
+    while self.match(AND):
+        let operator = self.previous()
+        let right = self.equality()
+        result = Logical(left: result, operator: operator, right: right)
+
+proc `or`(self: var Parser): Expr =
+    result = self.`and`()
+
+    while self.match(OR):
+        let op = self.previous()
+        let right = self.`and`()
+        result = Logical(left: result, operator: op, right: right)
+
 proc assignment(self: var Parser): Expr =
-    let exp = self.equality()
+    let exp = self.`or`()
 
     if self.match(EQUAL):
         let equals = self.previous()
@@ -156,13 +172,41 @@ proc expressionStatement(self: var Parser): Stmt =
     return ExprStmt(expression: exp)
 
 
+
 proc `block`(self: var Parser): seq[Stmt]
+proc ifStatement(self: var Parser): Stmt
+proc whileStatement(self: var Parser): Stmt
+proc forStatement(self: var Parser): Stmt
 
 proc statement(self: var Parser): Stmt =
+    if self.match(FOR): return self.forStatement()
+    if self.match(IF): return self.ifStatement()
     if self.match(PRINT): return self.printStatement()
+    if self.match(WHILE): return self.whileStatement()
     if self.match(LEFT_BRACE): return Block(statements: self.block())
 
     return self.expressionStatement()
+
+proc ifStatement(self: var Parser): Stmt =
+    discard self.consume(LEFT_PAREN, "Expect '(' after 'if'.")
+    let condition = self.expression()
+    discard self.consume(RIGHT_PAREN, "Expect ')' after 'if'.")
+
+    let thenBranch = self.statement()
+    var elseBranch: Stmt = nil
+
+    if self.match(ELSE):
+        elseBranch = self.statement()
+
+    return IfStmt(condition: condition, thenBranch: thenBranch, elseBranch: elseBranch)
+
+proc whileStatement(self: var Parser): Stmt =
+    discard self.consume(LEFT_PAREN, "Expect '(' after 'while'.")
+    let condition = self.expression()
+    discard self.consume(RIGHT_PAREN, "Expect ')' after condition.")
+    let body = self.statement()
+
+    return WhileStmt(condition: condition, body: body)
 
 proc varDeclaration(self: var Parser): Stmt =
     let name = self.consume(IDENTIFIER, "Expect variable name.")
@@ -172,6 +216,43 @@ proc varDeclaration(self: var Parser): Stmt =
 
     discard self.consume(SEMICOLON, "Expect ';' after variable declaration.")
     return VarStmt(name: name, initializer: initializer)
+
+proc forStatement(self: var Parser): Stmt =
+    discard self.consume(LEFT_PAREN, "Expect '(' after 'for'.")
+
+    var initializer: Stmt
+    if self.match(SEMICOLON):
+        initializer = nil
+    elif self.match(VAR):
+        initializer = self.varDeclaration()
+    else:
+        initializer = self.expressionStatement()
+
+    var condition: Expr = nil
+    if not self.check(SEMICOLON):
+        condition = self.expression()
+
+    discard self.consume(SEMICOLON, "Expect ';' after loop condition.")
+
+    var increment: Expr = nil
+    if not self.check(RIGHT_PAREN):
+        increment = self.expression()
+
+    discard self.consume(RIGHT_PAREN, "Expect ')' after for clauses.")
+
+    var body = self.statement()
+
+    if not increment.isNil:
+        body = Block(statements: @[body, ExprStmt(expression: increment)])
+
+    if condition.isNil: condition = Literal(value: LoxBool(value: true))
+    body = WhileStmt(condition: condition, body: body)
+
+    if not initializer.isNil:
+        body = Block(statements: @[initializer, body])
+
+    return body
+
 
 proc declaration(self: var Parser): Stmt =
     try:

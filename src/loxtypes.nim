@@ -68,7 +68,9 @@ proc newLoxNumber*(v: float): LoxNumber =
 
 
 func `$`*(x: LoxNumber): string =
-    fmt"{x.value}"
+    result = fmt"{x.value}"
+    if result[^2..^1] == ".0":
+        result = result[0..^3]
 
 func `$`*(x: LoxString): string =
     fmt"""`{x.value}`"""

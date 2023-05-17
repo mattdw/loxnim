@@ -19,6 +19,11 @@ type
     Literal* = ref object of Expr
         value*: LoxObj
 
+    Logical* = ref object of Expr
+        left*: Expr
+        operator*: Token
+        right*: Expr
+
     Unary* = ref object of Expr
         operator*: Token
         right*: Expr
@@ -47,7 +52,14 @@ type
         name*: Token
         initializer*: Expr
 
+    IfStmt* = ref object of Stmt
+        condition*: Expr
+        thenBranch*: Stmt
+        elseBranch*: Stmt
 
+    WhileStmt* = ref object of Stmt
+        condition*: Expr
+        body*: Stmt
 
 method pp*(exp: Expr): string {.base.} =
     fmt"(not implemented for {repr(exp)})"
