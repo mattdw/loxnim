@@ -7,6 +7,7 @@ import token
 import parser
 import ast
 import eval
+import error
 
 proc run(self: var Lox, source: string) =
     var scanner = newScanner(self, source)
@@ -14,13 +15,13 @@ proc run(self: var Lox, source: string) =
     tokens = scanner.scanTokens()
 
     var parser = newParser(self, tokens)
-    let exp = parser.parse()
+    let stmts = parser.parse()
 
     if self.hadError:
         return
 
     var interpeter = LoxInterp()
-    interpeter.interpret(exp)
+    interpeter.interpret(stmts)
 
     # echo pp(exp)
 

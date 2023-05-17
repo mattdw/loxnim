@@ -75,6 +75,9 @@ proc primary(self: var Parser): Expr =
     if self.match(NUMBER, STRING):
         return Literal(value: self.previous().literal.get())
 
+    if self.match(IDENTIFIER):
+        return Variable(name: self.previous())
+
     if self.match(LEFT_PAREN):
         let exp = self.expression()
         discard self.consume(RIGHT_PAREN, "Expect ')' after expression.")
@@ -127,8 +130,43 @@ proc equality(self: var Parser): Expr =
 proc expression(self: var Parser): Expr =
     self.equality()
 
-proc parse*(self: var Parser): Expr =
+proc printStatement(self: var Parser): Stmt =
+    let exp = self.expression()
+    discard self.consume(SEMICOLON, "Expect ';' after value.")
+    return PrintStmt(expression: exp)
+
+proc expressionStatement(self: var Parser): Stmt =
+    let exp = self.expression()
+    discard self.consume(SEMICOLON, "Expect ';' after value.")
+    return ExprStmt(expression: exp)
+
+proc statement(self: var Parser): Stmt =
+    if self.match(PRINT):
+        return self.printStatement()
+
+    return self.expressionStatement()
+
+proc varDeclaration(self: var Parser): Stmt =
+    let name = self.consume(IDENTIFIER, "Expect variable name.")
+    var initializer: Expr = nil
+    if self.match(EQUAL):
+        initializer = self.expression()
+
+    discard self.consume(SEMICOLON, "Expect ';' after variable declaration.")
+    return VarStmt(name: name, initializer: initializer)
+
+proc declaration(self: var Parser): Stmt =
     try:
-        return self.expression()
+        if self.match(VAR):
+            return self.varDeclaration()
+        return self.statement()
     except ParseError as e:
-        return nil
+        self.synchronize()
+        raise e
+
+proc parse*(self: var Parser): seq[Stmt] =
+    var stmts = newSeq[Stmt]()
+    while not self.isAtEnd():
+        stmts.add(self.declaration())
+
+    return stmts

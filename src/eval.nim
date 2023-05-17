@@ -131,9 +131,21 @@ method eval(exp: Binary): LoxObj =
     else:
         raise (ref RuntimeError)(msg: fmt"Unmatched operator {exp.operator}")
 
-proc interpret*(self: var LoxInterp, exp: Expr) =
+
+method eval(stmt: Stmt) {.base.} =
+    raise (ref RuntimeError)(msg: "Reached Stmt base case!")
+
+method eval(stmt: ExprStmt) =
+    discard eval(stmt.expression)
+
+method eval(stmt: PrintStmt) =
+    let val = eval(stmt.expression)
+    echo val
+
+
+proc interpret*(self: var LoxInterp, statements: seq[Stmt]) =
     try:
-        let val = eval(exp)
-        echo $val
+        for s in statements:
+            eval(s)
     except RuntimeError as e:
         self.lox.runtimeError(e[])

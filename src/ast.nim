@@ -4,6 +4,8 @@ import token
 import loxtypes
 
 type
+    # Expression types
+
     Expr* = ref object of RootObj
 
     Binary* = ref object of Expr
@@ -20,6 +22,24 @@ type
     Unary* = ref object of Expr
         operator*: Token
         right*: Expr
+
+    Variable* = ref object of Expr
+        name*: Token
+
+    # Statement types
+
+    Stmt* = ref object of RootObj
+
+    ExprStmt* = ref object of Stmt
+        expression*: Expr
+
+    PrintStmt* = ref object of Stmt
+        expression*: Expr
+
+    VarStmt* = ref object of Stmt
+        name*: Token
+        initializer*: Expr
+
 
 
 method pp*(exp: Expr): string {.base.} =
