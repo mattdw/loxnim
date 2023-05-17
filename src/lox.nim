@@ -20,8 +20,7 @@ proc run(self: var Lox, source: string) =
     if self.hadError:
         return
 
-    var interpeter = LoxInterp()
-    interpeter.interpret(stmts)
+    self.interpreter.interpret(stmts)
 
     # echo pp(exp)
 
@@ -49,13 +48,14 @@ proc runPrompt(self: var Lox) =
 proc main*(): void =
     let argc = paramCount()
     let argv = commandLineParams()
-    var l = Lox()
+    var l = (ref Lox)()
+    l.interpreter = newInterpreter(l)
 
     case argc
     of 1:
-        runFile(l, argv[0])
+        runFile(l[], argv[0])
     of 0:
-        runPrompt(l)
+        runPrompt(l[])
     else:
         quit(64)
     system.quit()

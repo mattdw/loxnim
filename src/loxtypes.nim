@@ -27,7 +27,15 @@ type
 
     LoxNil* = ref object of LoxObj
 
+    Environment* = object
+        values*: Table[string, LoxObj]
+
+    LoxInterp* = object
+        lox*: ref Lox
+        env*: Environment
+
     Lox* = object
+        interpreter*: LoxInterp
         hadError*: bool
         hadRuntimeError*: bool
 

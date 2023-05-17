@@ -4,11 +4,11 @@ import ast
 import loxtypes
 import token
 import error
+import environment
 
-type
-    LoxInterp* = object
-        lox: Lox
-
+proc newInterpreter*(lox: ref Lox): LoxInterp =
+    result.lox = lox
+    result.env = newEnvironment()
 
 func getNum(l: LoxObj): float =
     if l of LoxNumber:
@@ -76,18 +76,21 @@ func cmp(o: TokenType, l: LoxObj, r: LoxObj): bool =
 
     raise (ref TypeError)(msg: fmt"Can't compare different types {l} and {r}")
 
-method eval(exp: Expr): LoxObj {.base.} =
+method eval(self: var LoxInterp, exp: Expr): LoxObj {.base.} =
     raise (ref RuntimeError)(msg: "Reached LoxObj base eval!")
     LoxNil()
 
-method eval(exp: Literal): LoxObj =
-    return exp.value
+method eval(self: var LoxInterp, exp: Literal): LoxObj =
+    exp.value
 
-method eval(exp: Grouping): LoxObj =
-    eval(exp.expression)
+method eval(self: var LoxInterp, exp: Variable): LoxObj =
+    self.env.get(exp.name)
 
-method eval(exp: Unary): LoxObj =
-    let r = eval(exp.right)
+method eval(self: var LoxInterp, exp: Grouping): LoxObj =
+    self.eval(exp.expression)
+
+method eval(self: var LoxInterp, exp: Unary): LoxObj =
+    let r = self.eval(exp.right)
 
     case exp.operator.typ
     of MINUS:
@@ -102,9 +105,9 @@ method eval(exp: Unary): LoxObj =
 
     raise (ref RuntimeError)(msg: "Unreachable in eval Unary")
 
-method eval(exp: Binary): LoxObj =
-    let l = eval(exp.left)
-    let r = eval(exp.right)
+method eval(self: var LoxInterp, exp: Binary): LoxObj =
+    let l = self.eval(exp.left)
+    let r = self.eval(exp.right)
 
     case exp.operator.typ
     of GREATER, GREATER_EQUAL, LESS, LESS_EQUAL:
@@ -132,20 +135,26 @@ method eval(exp: Binary): LoxObj =
         raise (ref RuntimeError)(msg: fmt"Unmatched operator {exp.operator}")
 
 
-method eval(stmt: Stmt) {.base.} =
+method eval(self: var LoxInterp, stmt: Stmt) {.base.} =
     raise (ref RuntimeError)(msg: "Reached Stmt base case!")
 
-method eval(stmt: ExprStmt) =
-    discard eval(stmt.expression)
+method eval(self: var LoxInterp, stmt: ExprStmt) =
+    discard self.eval(stmt.expression)
 
-method eval(stmt: PrintStmt) =
-    let val = eval(stmt.expression)
+method eval(self: var LoxInterp, stmt: PrintStmt) =
+    let val = self.eval(stmt.expression)
     echo val
 
+method eval(self: var LoxInterp, stmt: VarStmt) =
+    var val: LoxObj = LoxNil()
+    if not stmt.initializer.isNil:
+        val = self.eval(stmt.initializer)
+
+    self.env.define(stmt.name.lexeme, val)
 
 proc interpret*(self: var LoxInterp, statements: seq[Stmt]) =
     try:
         for s in statements:
-            eval(s)
+            self.eval(s)
     except RuntimeError as e:
         self.lox.runtimeError(e[])
