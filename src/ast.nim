@@ -8,10 +8,19 @@ type
 
     Expr* = ref object of RootObj
 
+    Assign* = ref object of Expr
+        name*: Token
+        value*: Expr
+
     Binary* = ref object of Expr
         left*: Expr
         operator*: Token
         right*: Expr
+
+    Call* = ref object of Expr
+        callee*: Expr
+        paren*: Token
+        arguments*: seq[Expr]
 
     Grouping* = ref object of Expr
         expression*: Expr
@@ -31,31 +40,27 @@ type
     Variable* = ref object of Expr
         name*: Token
 
-    Assign* = ref object of Expr
-        name*: Token
-        value*: Expr
-
     # Statement types
 
     Stmt* = ref object of RootObj
 
-    ExprStmt* = ref object of Stmt
-        expression*: Expr
-
-    PrintStmt* = ref object of Stmt
-        expression*: Expr
-
     Block* = ref object of Stmt
         statements*: seq[Stmt]
 
-    VarStmt* = ref object of Stmt
-        name*: Token
-        initializer*: Expr
+    ExprStmt* = ref object of Stmt
+        expression*: Expr
 
     IfStmt* = ref object of Stmt
         condition*: Expr
         thenBranch*: Stmt
         elseBranch*: Stmt
+
+    PrintStmt* = ref object of Stmt
+        expression*: Expr
+
+    VarStmt* = ref object of Stmt
+        name*: Token
+        initializer*: Expr
 
     WhileStmt* = ref object of Stmt
         condition*: Expr

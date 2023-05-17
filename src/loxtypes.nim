@@ -33,7 +33,12 @@ type
 
     LoxInterp* = object
         lox*: ref Lox
+        globals*: Environment
         env*: Environment
+
+    LoxCallable* = ref object of LoxObj
+        arity*: proc(): int
+        call*: proc(interp: LoxInterp, args: varargs[LoxObj]): LoxObj
 
     Lox* = object
         interpreter*: LoxInterp
@@ -73,7 +78,7 @@ func `$`*(x: LoxNumber): string =
         result = result[0..^3]
 
 func `$`*(x: LoxString): string =
-    fmt"""`{x.value}`"""
+    x.value
 
 func `$`*(x: LoxBool): string =
     $x.value

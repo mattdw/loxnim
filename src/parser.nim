@@ -85,6 +85,27 @@ proc primary(self: var Parser): Expr =
 
     raise self.error(self.peek(), "Expect expression.")
 
+proc finishCall(self: var Parser, callee: Expr): Expr =
+    var args = newSeq[Expr]()
+    if not self.check(RIGHT_PAREN):
+        while true:
+            if args.len() >= 255:
+                raise self.error(self.peek(), "Can't have more than 255 arguments.")
+            args.add(self.expression())
+            if not self.match(COMMA): break
+
+    let paren = self.consume(RIGHT_PAREN, "Expect ')' after arguments.")
+    return Call(callee: callee, paren: paren, arguments: args)
+
+proc call(self: var Parser): Expr =
+    result = self.primary()
+
+    while true:
+        if self.match(LEFT_PAREN):
+            result = self.finishCall(result)
+        else:
+            break
+
 proc unary(self: var Parser): Expr =
     if self.match(BANG, MINUS):
         let op = self.previous()
@@ -92,7 +113,7 @@ proc unary(self: var Parser): Expr =
         result = Unary(operator: op, right: right)
         return result
 
-    result = self.primary()
+    result = self.call()
 
 proc factor(self: var Parser): Expr =
     result = self.unary()

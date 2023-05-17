@@ -1,8 +1,22 @@
-var a = 0;
-var temp;
+var t = clock();
+print format("Started at {}", t);
 
-for (var b = 1; a < 20000000; b = temp + b) {
-  print a;
-  temp = a;
-  a = b;
+var prev = 0;
+var curr = 1;
+for (var i=1; i<30; i = i + 1) {
+    var suff = "th";
+    if (i < 10 or i > 20) {
+        var rem = mod(i, 10);
+        if (rem == 1) suff = "st";
+        if (rem == 2) suff = "nd";
+        if (rem == 3) suff = "rd";
+    }
+
+    print format("The {}{} fib is {}", i, suff, curr);
+    var temp = prev;
+    prev = curr;
+    curr = curr + temp;
 }
+
+var u = clock();
+print format("Ended at {}; {}s elapsed.", u, u - t);

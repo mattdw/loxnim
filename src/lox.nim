@@ -6,7 +6,7 @@ import scanner
 import token
 import parser
 import ast
-import eval
+import interpreter
 import error
 
 proc run(self: var Lox, source: string) =

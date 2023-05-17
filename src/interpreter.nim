@@ -1,14 +1,13 @@
 import std/strformat
+import sugar
+import std/times
+import std/strutils
 
 import ast
 import loxtypes
 import token
 import error
 import environment
-
-proc newInterpreter*(lox: ref Lox): LoxInterp =
-    result.lox = lox
-    result.env = newEnvironment()
 
 func getNum(l: LoxObj): float =
     if l of LoxNumber:
@@ -21,6 +20,44 @@ func getStr(l: LoxObj): string =
         return LoxString(l).value
 
     raise (ref TypeError)(msg: fmt"Expected a string but got {l}.")
+
+proc formatLoxStr(args: varargs[LoxObj]): LoxString =
+    if not (args[0] of LoxString):
+        raise (ref RuntimeError)(msg: "First arg to format must be string")
+
+    var s = ""
+    var segs = LoxString(args[0]).value.split("{}")
+    let args = args[1..args.high()]
+    for i in 0..args.high():
+        s &= segs[i]
+        if args[i] of LoxString:
+            s &= LoxString(args[i]).value
+        else:
+            s &= $args[i]
+
+    s &= segs[args.len()]
+
+    return LoxString(value: s)
+
+proc newInterpreter*(lox: ref Lox): LoxInterp =
+    result.lox = lox
+    result.globals = newEnvironment()
+    result.env = result.globals
+
+    result.globals.define("clock", LoxCallable(
+        arity: () => 0,
+        call: (interp, args) => LoxNumber(value: epochTime())
+    ))
+
+    result.globals.define("format", LoxCallable(
+        arity: () => -1,
+        call: (interp, args) => formatLoxStr(args)
+    ))
+
+    result.globals.define("mod", LoxCallable(
+        arity: () => 2,
+        call: (interp, args) => LoxNumber(value: (args[0].getNum().toInt() mod args[1].getNum().toInt()).toFloat)
+    ))
 
 func isTruthy(o: LoxObj): bool =
     if o of LoxNil:
@@ -103,6 +140,23 @@ method eval(self: var LoxInterp, exp: Assign): LoxObj =
     let val = self.eval(exp.value)
     self.env.assign(exp.name, val)
     return val
+
+method eval(self: var LoxInterp, exp: Call): LoxObj =
+    let callee = self.eval(exp.callee)
+    var args = newSeq[LoxObj]()
+    for arg in exp.arguments:
+        args.add(self.eval(arg))
+
+    if not (callee of LoxCallable):
+        raise (ref RuntimeError)(msg: "Can only call functions and classes.")
+
+    let fun = LoxCallable(callee)
+
+    let arity = fun.arity()
+    if arity != -1 and args.len() != arity:
+        raise (ref RuntimeError)(msg: fmt"Expected {arity} arguments but got {args.len()}.")
+
+    return fun.call(self, args)
 
 method eval(self: var LoxInterp, exp: Unary): LoxObj =
     let r = self.eval(exp.right)
