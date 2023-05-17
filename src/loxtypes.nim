@@ -50,8 +50,6 @@ const keywords* = {
     "while": WHILE
 }.toTable()
 
-var loxObj*: Lox
-
 proc newLoxString*(v: string): LoxString =
     result = LoxString(value: v)
 

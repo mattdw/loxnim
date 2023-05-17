@@ -6,17 +6,18 @@ import error
 
 type
     Parser* = object
+        lox: Lox
         tokens: seq[Token]
         current: int
 
     ParseError = object of CatchableError
 
 
-proc newParser*(tokens: seq[Token]): Parser =
-    Parser(tokens: tokens)
+proc newParser*(lox: Lox, tokens: seq[Token]): Parser =
+    Parser(lox: lox, tokens: tokens)
 
-proc error(self: Parser, tok: Token, msg: string): ref ParseError =
-    loxObj.error(tok, msg)
+proc error(self: var Parser, tok: Token, msg: string): ref ParseError =
+    error(self.lox, tok, msg)
     return (ref ParseError)(msg: msg)
 
 func peek(self: Parser): Token =

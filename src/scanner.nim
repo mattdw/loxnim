@@ -9,6 +9,7 @@ import loxtypes
 
 type
     Scanner* = object
+        lox: Lox
         source: string
         tokens: seq[Token]
         start: int
@@ -16,7 +17,8 @@ type
         line: int
 
 
-proc newScanner*(source: string): Scanner =
+proc newScanner*(lox: var Lox, source: string): Scanner =
+    result.lox = lox
     result.source = source
     result.tokens = @[]
     result.start = 0
@@ -76,7 +78,7 @@ proc string(self: var Scanner) =
         discard self.advance()
 
     if self.isAtEnd():
-        error(loxObj, self.line, "Unterminated string.")
+        self.lox.error(self.line, "Unterminated string.")
         return
 
     discard self.advance()
@@ -102,7 +104,7 @@ proc number(self: var Scanner) =
     let res = parseFloat(numslice, num)
 
     if res == 0:
-        error(loxObj, self.line, fmt"Bad num: {numslice}")
+        self.lox.error(self.line, fmt"Bad num: {numslice}")
     else:
         self.addToken(NUMBER, some(LoxObj(newLoxNumber(num))))
 
@@ -157,5 +159,5 @@ proc scanToken(self: var Scanner): void =
     of '_', 'A'..'Z', 'a'..'z':
         self.identifier()
     else:
-        error(loxObj, self.line, fmt"Unexpected character: {c}")
+        self.lox.error(self.line, fmt"Unexpected character: {c}")
 

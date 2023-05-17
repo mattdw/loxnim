@@ -8,36 +8,32 @@ import parser
 import ast
 
 
-proc run(source: string) =
-    var scanner = newScanner(source)
+proc run(self: var Lox, source: string) =
+    var scanner = newScanner(self, source)
     var tokens: seq[Token]
     tokens = scanner.scanTokens()
 
-    var parser = newParser(tokens)
+    var parser = newParser(self, tokens)
     let exp = parser.parse()
 
-    if loxObj.hadError:
+    if self.hadError:
         return
 
     echo pp(exp)
 
-    # for token in tokens:
-    #     echo token
-
-proc runFile(self: Lox, path: string) =
+proc runFile(self: var Lox, path: string) =
     let bytes = readFile(path)
-    run(bytes)
+    self.run(bytes)
 
     if self.hadError:
         quit(65)
-
 
 proc runPrompt(self: var Lox) =
     while true:
         stdout.write("> ")
         try:
             let line = stdin.readLine()
-            run(line)
+            self.run(line)
         except IOError as err:
             break
         self.hadError = false
@@ -47,8 +43,6 @@ proc main*(): void =
     let argc = paramCount()
     let argv = commandLineParams()
     var l = Lox()
-
-    echo commandLineParams()
 
     case argc
     of 1:
