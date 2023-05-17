@@ -27,7 +27,8 @@ type
 
     LoxNil* = ref object of LoxObj
 
-    Environment* = object
+    Environment* = ref object
+        enclosing*: Environment
         values*: Table[string, LoxObj]
 
     LoxInterp* = object

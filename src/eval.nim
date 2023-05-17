@@ -89,6 +89,11 @@ method eval(self: var LoxInterp, exp: Variable): LoxObj =
 method eval(self: var LoxInterp, exp: Grouping): LoxObj =
     self.eval(exp.expression)
 
+method eval(self: var LoxInterp, exp: Assign): LoxObj =
+    let val = self.eval(exp.value)
+    self.env.assign(exp.name, val)
+    return val
+
 method eval(self: var LoxInterp, exp: Unary): LoxObj =
     let r = self.eval(exp.right)
 
@@ -151,6 +156,20 @@ method eval(self: var LoxInterp, stmt: VarStmt) =
         val = self.eval(stmt.initializer)
 
     self.env.define(stmt.name.lexeme, val)
+
+proc evalBlock(self: var LoxInterp, statements: seq[Stmt], env: Environment) =
+    let prev = self.env
+    try:
+        self.env = env
+
+        for s in statements:
+            self.eval(s)
+    finally:
+        self.env = prev
+
+method eval(self: var LoxInterp, stmt: Block) =
+    self.evalBlock(stmt.statements, newEnvironment(self.env))
+    return
 
 proc interpret*(self: var LoxInterp, statements: seq[Stmt]) =
     try:

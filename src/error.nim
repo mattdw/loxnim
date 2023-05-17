@@ -24,7 +24,6 @@ proc error*(self: var Lox, tok: Token, msg: string) =
     else:
         self.report(tok.line, fmt"at '{tok.lexeme}'", msg)
 
-
 proc runtimeError*(self: ref Lox, e: RuntimeError) =
     stderr.writeLine($e)
     self.hadRuntimeError = true

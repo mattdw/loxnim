@@ -40,6 +40,8 @@ proc runPrompt(self: var Lox) =
         try:
             let line = stdin.readLine()
             self.run(line)
+        except ParseError as e:
+            echo e.msg
         except IOError as err:
             break
         self.hadError = false

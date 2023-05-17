@@ -26,6 +26,10 @@ type
     Variable* = ref object of Expr
         name*: Token
 
+    Assign* = ref object of Expr
+        name*: Token
+        value*: Expr
+
     # Statement types
 
     Stmt* = ref object of RootObj
@@ -35,6 +39,9 @@ type
 
     PrintStmt* = ref object of Stmt
         expression*: Expr
+
+    Block* = ref object of Stmt
+        statements*: seq[Stmt]
 
     VarStmt* = ref object of Stmt
         name*: Token

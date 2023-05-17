@@ -127,8 +127,23 @@ proc equality(self: var Parser): Expr =
         let right: Expr = self.comparison()
         result = Binary(left: result, operator: operator, right: right)
 
+proc assignment(self: var Parser): Expr =
+    let exp = self.equality()
+
+    if self.match(EQUAL):
+        let equals = self.previous()
+        let value = self.assignment()
+
+        if exp of Variable:
+            let name = Variable(exp).name
+            return Assign(name: name, value: value)
+
+        raise self.error(equals, "Invalid assignment target.")
+
+    return exp
+
 proc expression(self: var Parser): Expr =
-    self.equality()
+    self.assignment()
 
 proc printStatement(self: var Parser): Stmt =
     let exp = self.expression()
@@ -140,9 +155,12 @@ proc expressionStatement(self: var Parser): Stmt =
     discard self.consume(SEMICOLON, "Expect ';' after value.")
     return ExprStmt(expression: exp)
 
+
+proc `block`(self: var Parser): seq[Stmt]
+
 proc statement(self: var Parser): Stmt =
-    if self.match(PRINT):
-        return self.printStatement()
+    if self.match(PRINT): return self.printStatement()
+    if self.match(LEFT_BRACE): return Block(statements: self.block())
 
     return self.expressionStatement()
 
@@ -163,6 +181,14 @@ proc declaration(self: var Parser): Stmt =
     except ParseError as e:
         self.synchronize()
         raise e
+
+proc `block`(self: var Parser): seq[Stmt] =
+    result = newSeq[Stmt]()
+    while not self.check(RIGHT_BRACE) and not self.isAtEnd():
+        result.add(self.declaration())
+
+    discard self.consume(RIGHT_BRACE, "Expect '}' after block.")
+
 
 proc parse*(self: var Parser): seq[Stmt] =
     var stmts = newSeq[Stmt]()
