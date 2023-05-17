@@ -10,8 +10,6 @@ type
         tokens: seq[Token]
         current: int
 
-    ParseError = object of CatchableError
-
 
 proc newParser*(lox: Lox, tokens: seq[Token]): Parser =
     Parser(lox: lox, tokens: tokens)

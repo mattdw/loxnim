@@ -29,6 +29,7 @@ type
 
     Lox* = object
         hadError*: bool
+        hadRuntimeError*: bool
 
 
 const keywords* = {
@@ -58,7 +59,7 @@ proc newLoxNumber*(v: float): LoxNumber =
 
 
 func `$`*(x: LoxNumber): string =
-    fmt"L<{x.value}>"
+    fmt"{x.value}"
 
 func `$`*(x: LoxString): string =
     fmt"""`{x.value}`"""

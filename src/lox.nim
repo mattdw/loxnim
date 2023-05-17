@@ -6,7 +6,7 @@ import scanner
 import token
 import parser
 import ast
-
+import eval
 
 proc run(self: var Lox, source: string) =
     var scanner = newScanner(self, source)
@@ -19,7 +19,10 @@ proc run(self: var Lox, source: string) =
     if self.hadError:
         return
 
-    echo pp(exp)
+    var interpeter = LoxInterp()
+    interpeter.interpret(exp)
+
+    # echo pp(exp)
 
 proc runFile(self: var Lox, path: string) =
     let bytes = readFile(path)
@@ -27,6 +30,9 @@ proc runFile(self: var Lox, path: string) =
 
     if self.hadError:
         quit(65)
+
+    if self.hadRuntimeError:
+        quit(70)
 
 proc runPrompt(self: var Lox) =
     while true:
