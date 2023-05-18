@@ -35,10 +35,15 @@ type
         lox*: ref Lox
         globals*: Environment
         env*: Environment
+        locals*: Table[RootObj, int]
+
+    LoxResolver* = object
+        interp*: LoxInterp
+        scopes*: seq[Table[string, bool]]
 
     LoxCallable* = ref object of LoxObj
-        arity*: proc(): int
-        call*: proc(interp: LoxInterp, args: varargs[LoxObj]): LoxObj
+        # arity*: int
+        # call*: proc(interp: var LoxInterp, args: varargs[LoxObj]): LoxObj
 
     Lox* = object
         interpreter*: LoxInterp

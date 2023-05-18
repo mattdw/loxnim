@@ -1,0 +1,5 @@
+fun myFunc(a, b, c) {
+    print format("a={}, b={}, c={}", a, b, c);
+}
+
+myFunc(1, 2, 3);

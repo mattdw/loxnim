@@ -1,3 +1,5 @@
+import std/strformat
+
 import token
 import ast
 import loxtypes
@@ -198,11 +200,13 @@ proc `block`(self: var Parser): seq[Stmt]
 proc ifStatement(self: var Parser): Stmt
 proc whileStatement(self: var Parser): Stmt
 proc forStatement(self: var Parser): Stmt
+proc returnStatement(self: var Parser): Stmt
 
 proc statement(self: var Parser): Stmt =
     if self.match(FOR): return self.forStatement()
     if self.match(IF): return self.ifStatement()
     if self.match(PRINT): return self.printStatement()
+    if self.match(TokenType.RETURN): return self.returnStatement()
     if self.match(WHILE): return self.whileStatement()
     if self.match(LEFT_BRACE): return Block(statements: self.block())
 
@@ -274,11 +278,41 @@ proc forStatement(self: var Parser): Stmt =
 
     return body
 
+proc returnStatement(self: var Parser): Stmt =
+    let keyword = self.previous()
+    var value: Expr = nil
+    if not self.check(SEMICOLON):
+        value = self.expression()
+
+    discard self.consume(SEMICOLON, "Expect ';' after return value.")
+
+    return ast.Return(keyword: keyword, value: value)
+
+proc function(self: var Parser, kind: string): Function =
+    let name = self.consume(IDENTIFIER, fmt"Expect {kind} name.")
+    discard self.consume(LEFT_PAREN, fmt"Expect '(' after {kind} name")
+    var params = newSeq[Token]()
+    if not self.check(RIGHT_PAREN):
+        while true:
+            if params.len() >= 255:
+                raise self.error(self.peek(), "Can't have more than 255 parameters.")
+
+            params.add(self.consume(IDENTIFIER, "Expect parameter name."))
+            if not self.match(COMMA):
+                break
+
+    discard self.consume(RIGHT_PAREN, "Expect ')' after parameters.")
+
+    discard self.consume(LEFT_BRACE, "Expect '{' before " & kind & " body.")
+
+    let body = self.`block`()
+
+    result = Function(name: name, params: params, body: body)
 
 proc declaration(self: var Parser): Stmt =
     try:
-        if self.match(VAR):
-            return self.varDeclaration()
+        if self.match(FUN): return self.function("function")
+        if self.match(VAR): return self.varDeclaration()
         return self.statement()
     except ParseError as e:
         self.synchronize()

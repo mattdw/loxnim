@@ -144,7 +144,7 @@ proc scanToken(self: var Scanner): void =
     of '>': self.addToken(if self.match('='): GREATER_EQUAL else: GREATER)
     of '/':
         if self.match('/'):
-            while self.peek() != '\n' and self.isAtEnd() != false:
+            while self.peek() != '\n' and not self.isAtEnd():
                 discard self.advance()
         else:
             self.addToken(SLASH)

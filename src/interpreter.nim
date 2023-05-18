@@ -1,5 +1,4 @@
 import std/strformat
-import sugar
 import std/times
 import std/strutils
 
@@ -8,6 +7,19 @@ import loxtypes
 import token
 import error
 import environment
+
+type
+    LoxFunction* = ref object of LoxCallable
+        declaration: Function
+        closure: Environment
+
+    Clock* = ref object of LoxCallable
+    Mod* = ref object of LoxCallable
+    Format* = ref object of LoxCallable
+
+    ReturnErr = ref object of CatchableError
+        value*: LoxObj
+
 
 func getNum(l: LoxObj): float =
     if l of LoxNumber:
@@ -39,25 +51,31 @@ proc formatLoxStr(args: varargs[LoxObj]): LoxString =
 
     return LoxString(value: s)
 
+method arity(fobj: LoxCallable): int {.base.} = -1
+method call(self: var LoxInterp, fobj: LoxCallable, args: varargs[LoxObj]): LoxObj {.base.} =
+    raise (ref RuntimeError)(msg: "Unhandled call()")
+
+method arity(fobj: Clock): int = 0
+method call(self: var LoxInterp, fobj: Clock, args: varargs[LoxObj]): LoxObj =
+    LoxNumber(value: epochTime())
+
+method arity(fobj: Format): int = -1
+method call(self: var LoxInterp, fobj: Format, args: varargs[LoxObj]): LoxObj =
+    formatLoxStr(args)
+
+method arity(fobj: Mod): int = 2
+method call(self: var LoxInterp, fobj: Mod, args: varargs[LoxObj]): LoxObj =
+    LoxNumber(value: (args[0].getNum().toInt() mod args[1].getNum().toInt()).toFloat)
+
+
 proc newInterpreter*(lox: ref Lox): LoxInterp =
     result.lox = lox
     result.globals = newEnvironment()
     result.env = result.globals
 
-    result.globals.define("clock", LoxCallable(
-        arity: () => 0,
-        call: (interp, args) => LoxNumber(value: epochTime())
-    ))
-
-    result.globals.define("format", LoxCallable(
-        arity: () => -1,
-        call: (interp, args) => formatLoxStr(args)
-    ))
-
-    result.globals.define("mod", LoxCallable(
-        arity: () => 2,
-        call: (interp, args) => LoxNumber(value: (args[0].getNum().toInt() mod args[1].getNum().toInt()).toFloat)
-    ))
+    result.globals.define("clock", Clock())
+    result.globals.define("format", Format())
+    result.globals.define("mod", Mod())
 
 func isTruthy(o: LoxObj): bool =
     if o of LoxNil:
@@ -156,7 +174,7 @@ method eval(self: var LoxInterp, exp: Call): LoxObj =
     if arity != -1 and args.len() != arity:
         raise (ref RuntimeError)(msg: fmt"Expected {arity} arguments but got {args.len()}.")
 
-    return fun.call(self, args)
+    return call(self, fun, args)
 
 method eval(self: var LoxInterp, exp: Unary): LoxObj =
     let r = self.eval(exp.right)
@@ -214,6 +232,14 @@ method eval(self: var LoxInterp, stmt: PrintStmt) =
     let val = self.eval(stmt.expression)
     echo val
 
+method eval(self: var LoxInterp, stmt: ast.Return) =
+    var val: LoxObj = LoxNil()
+    if not stmt.value.isNil:
+        val = self.eval(stmt.value)
+
+    raise ReturnErr(value: val)
+
+
 method eval(self: var LoxInterp, stmt: VarStmt) =
     var val: LoxObj = LoxNil()
     if not stmt.initializer.isNil:
@@ -234,6 +260,26 @@ proc evalBlock(self: var LoxInterp, statements: seq[Stmt], env: Environment) =
 method eval(self: var LoxInterp, stmt: Block) =
     self.evalBlock(stmt.statements, newEnvironment(self.env))
     return
+
+method arity(fobj: LoxFunction): int =
+    fobj.declaration.params.len()
+method call(self: var LoxInterp, fobj: LoxFunction, args: varargs[LoxObj]): LoxObj =
+    var env = newEnvironment(fobj.closure)
+    let params = fobj.declaration.params;
+    for i in 0..params.high():
+        env.define(params[i].lexeme, args[i])
+
+    try:
+        self.evalBlock(fobj.declaration.body, env)
+    except ReturnErr as ret:
+        return ret.value
+
+    return LoxNil()
+
+method eval(self: var LoxInterp, stmt: Function) =
+    var fun: LoxFunction
+    fun = LoxFunction(declaration: stmt, closure: self.env)
+    self.env.define(stmt.name.lexeme, fun)
 
 method eval(self: var LoxInterp, stmt: IfStmt) =
     if isTruthy(self.eval(stmt.condition)):

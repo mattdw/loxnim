@@ -50,6 +50,11 @@ type
     ExprStmt* = ref object of Stmt
         expression*: Expr
 
+    Function* = ref object of Stmt
+        name*: Token
+        params*: seq[Token]
+        body*: seq[Stmt]
+
     IfStmt* = ref object of Stmt
         condition*: Expr
         thenBranch*: Stmt
@@ -57,6 +62,10 @@ type
 
     PrintStmt* = ref object of Stmt
         expression*: Expr
+
+    Return* = ref object of Stmt
+        keyword*: Token
+        value*: Expr
 
     VarStmt* = ref object of Stmt
         name*: Token
