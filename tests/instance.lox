@@ -23,6 +23,11 @@ var method = Egotist().speak;
 method();
 
 class Cake {
+    init() {
+        print "baking";
+        return 0;
+    }
+
   taste() {
     var adjective = "delicious";
     print "The " + this.flavor + " cake is " + adjective + "!";
@@ -30,5 +35,6 @@ class Cake {
 }
 
 var cake = Cake();
+print cake.init();
 cake.flavor = "German chocolate";
 cake.taste(); // Prints "The German chocolate cake is delicious!".

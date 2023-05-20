@@ -7,6 +7,7 @@ import error
 
 proc newResolver*(interp: LoxInterp): LoxResolver =
     result = LoxResolver(interp: interp, scopes: newSeq[Table[string, bool]]())
+    result.currentClass = ClassType.t_NOCLASS
     # result.scopes.add(Table[string, bool]())
 
 method resolve(self: var LoxResolver, exp: Expr) {.base.} =
@@ -89,6 +90,8 @@ method resolve(self: var LoxResolver, stmt: PrintStmt) =
 
 method resolve(self: var LoxResolver, stmt: ReturnStmt) =
     if stmt.value != nil:
+        # if self.currentFunction == FunctionType.t_INITIALIZER:
+        #     discard
         self.resolve(stmt.value)
 
 method resolve(self: var LoxResolver, stmt: WhileStmt) =
@@ -113,6 +116,10 @@ method resolve(self: var LoxResolver, exp: SetExpr) =
     self.resolve(exp.obj)
 
 method resolve(self: var LoxResolver, exp: ThisExpr) =
+    if self.currentClass == ClassType.t_NOCLASS:
+        self.interp.lox[].error(exp.keyword,
+            "Can't use 'this' outside of a class.")
+        return
     self.resolveLocal(exp, exp.keyword)
 
 method resolve(self: var LoxResolver, exp: Grouping) =
@@ -141,6 +148,9 @@ method resolve(self: var LoxResolver, stmt: VarStmt) =
     self.define(stmt.name)
 
 method resolve(self: var LoxResolver, stmt: ClassStmt) =
+    let enclosingClass = self.currentClass
+    self.currentClass = ClassType.t_CLASS
+
     self.declare(stmt.name)
     self.define(stmt.name)
 
@@ -148,10 +158,13 @@ method resolve(self: var LoxResolver, stmt: ClassStmt) =
     self.scopes[self.scopes.high()]["this"] = true
 
     for `method` in stmt.methods:
-        let decl = FunctionType.t_METHOD
+        var decl = FunctionType.t_METHOD
+        if `method`.name.lexeme == "init":
+            decl = FunctionType.t_INITIALIZER
         self.resolveFunction(`method`, decl)
 
     self.endScope()
+    self.currentClass = enclosingClass
 
 proc resolve*(self: var LoxResolver, stmts: seq[Stmt]) =
     for s in stmts:

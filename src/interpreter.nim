@@ -299,13 +299,14 @@ method call(self: var LoxInterp, fobj: LoxFunction, args: varargs[LoxObj]): LoxO
     try:
         self.evalBlock(fobj.declaration.body, env)
     except ReturnErr as ret:
+        if fobj.isInitializer: return fobj.closure.getAt(0, "this")
         return ret.value
 
     return LoxNil()
 
 method eval(self: var LoxInterp, stmt: Function) =
     var fun: LoxFunction
-    fun = LoxFunction(declaration: stmt, closure: self.env)
+    fun = LoxFunction(declaration: stmt, closure: self.env, isInitializer: false)
     self.env.define(stmt.name.lexeme, fun)
 
 method eval(self: var LoxInterp, stmt: IfStmt) =
@@ -318,16 +319,30 @@ method eval(self: var LoxInterp, stmt: WhileStmt) =
     while isTruthy(self.eval(stmt.condition)):
         self.eval(stmt.body)
 
-method arity(fobj: LoxClass): int = 0
+method arity(fobj: LoxClass): int =
+    let init = fobj.findMethod("init")
+    if init.isNil:
+        return 0
+
+    return init.arity
+
 method call(self: var LoxInterp, fobj: LoxClass, args: varargs[LoxObj]): LoxObj =
-    result = newInstance(fobj)
+    var inst = newInstance(fobj)
+
+    let init: LoxFunction = fobj.findMethod("init")
+    if not init.isNil:
+        var boundInit = init.bind(inst)
+        discard call(self, boundInit, args)
+
+    result = inst
 
 method eval(self: var LoxInterp, stmt: ClassStmt) =
     self.env.define(stmt.name.lexeme, nil)
 
     var methods = Table[string, LoxFunction]()
     for meth in stmt.methods:
-        let function = LoxFunction(declaration: meth, closure: self.env)
+        let function = LoxFunction(declaration: meth, closure: self.env,
+            isInitializer: meth.name.lexeme == "init")
         methods[meth.name.lexeme] = function
 
     let klass = LoxClass(name: stmt.name.lexeme, methods: methods)

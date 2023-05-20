@@ -17,7 +17,12 @@ type
 
     FunctionType* = enum
         t_FUNCTION,
+        t_INITIALIZER,
         t_METHOD
+
+    ClassType* = enum
+        t_NOCLASS,
+        t_CLASS
 
     ##
 
@@ -144,6 +149,7 @@ type
     LoxResolver* = ref object
         interp*: LoxInterp
         scopes*: seq[Table[string, bool]]
+        currentClass*: ClassType
 
     LoxCallable* = ref object of LoxObj
         # arity*: int
@@ -152,6 +158,7 @@ type
     LoxFunction* = ref object of LoxCallable
         declaration*: Function
         closure*: Environment
+        isInitializer*: bool
 
     Lox* = object
         interpreter*: LoxInterp

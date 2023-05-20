@@ -22,7 +22,7 @@ proc newInstance*(klass: LoxClass): LoxInstance =
     # result.fields = newTable[string, LoxObj]()
 
 
-proc findMethod(klass: LoxClass, name: string): LoxFunction =
+proc findMethod*(klass: LoxClass, name: string): LoxFunction =
     if klass.methods.hasKey(name):
         return klass.methods[name]
 
@@ -31,7 +31,7 @@ proc findMethod(klass: LoxClass, name: string): LoxFunction =
 proc `bind`*(self: LoxFunction, inst: LoxInstance): LoxFunction =
     var env = newEnvironment(self.closure)
     env.define("this", inst)
-    return LoxFunction(declaration: self.declaration, closure: env)
+    return LoxFunction(declaration: self.declaration, closure: env, isInitializer: self.isInitializer)
 
 proc get*(instance: LoxInstance, name: Token): LoxObj =
     if instance.fields.hasKey(name.lexeme):
