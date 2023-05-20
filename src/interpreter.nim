@@ -106,6 +106,9 @@ func isEqual(l: LoxObj, r: LoxObj): bool =
     if l of LoxString and r of LoxString:
         return l.getStr() == r.getStr()
 
+    # if typeof(l) == typeof(r):
+    #     return l == r
+
     return false
 
 
@@ -196,6 +199,9 @@ method eval(self: var LoxInterp, exp: Call): LoxObj =
         raise (ref RuntimeError)(msg: fmt"Expected {arity} arguments but got {args.len()}.")
 
     return call(self, fun, args)
+
+method eval(self: var LoxInterp, exp: ThisExpr): LoxObj =
+    self.env.get(exp.keyword)
 
 method eval(self: var LoxInterp, exp: Unary): LoxObj =
     let r = self.eval(exp.right)

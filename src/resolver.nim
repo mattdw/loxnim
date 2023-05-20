@@ -112,6 +112,9 @@ method resolve(self: var LoxResolver, exp: SetExpr) =
     self.resolve(exp.value)
     self.resolve(exp.obj)
 
+method resolve(self: var LoxResolver, exp: ThisExpr) =
+    self.resolveLocal(exp, exp.keyword)
+
 method resolve(self: var LoxResolver, exp: Grouping) =
     self.resolve(exp.expression)
 
@@ -141,9 +144,14 @@ method resolve(self: var LoxResolver, stmt: ClassStmt) =
     self.declare(stmt.name)
     self.define(stmt.name)
 
+    self.beginScope()
+    self.scopes[self.scopes.high()]["this"] = true
+
     for `method` in stmt.methods:
         let decl = FunctionType.t_METHOD
         self.resolveFunction(`method`, decl)
+
+    self.endScope()
 
 proc resolve*(self: var LoxResolver, stmts: seq[Stmt]) =
     for s in stmts:

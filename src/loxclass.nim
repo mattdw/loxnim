@@ -5,6 +5,7 @@ import ast
 import loxtypes
 import error
 import token
+import environment
 
 type
     LoxClass* = ref object of LoxCallable
@@ -27,13 +28,18 @@ proc findMethod(klass: LoxClass, name: string): LoxFunction =
 
     return nil
 
+proc `bind`*(self: LoxFunction, inst: LoxInstance): LoxFunction =
+    var env = newEnvironment(self.closure)
+    env.define("this", inst)
+    return LoxFunction(declaration: self.declaration, closure: env)
+
 proc get*(instance: LoxInstance, name: Token): LoxObj =
     if instance.fields.hasKey(name.lexeme):
         return instance.fields[name.lexeme]
 
     let meth = instance.klass.findMethod(name.lexeme)
     if meth != nil:
-        return meth
+        return meth.bind(instance)
 
     raise (ref RuntimeError)(msg: fmt"{name}: undefined property.")
 

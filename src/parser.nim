@@ -77,6 +77,8 @@ proc primary(self: var Parser): Expr =
     if self.match(NUMBER, STRING):
         return Literal(value: self.previous().literal.get())
 
+    if self.match(THIS): return ThisExpr(keyword: self.previous())
+
     if self.match(IDENTIFIER):
         return Variable(name: self.previous())
 

@@ -66,6 +66,9 @@ type
         name*: Token
         value*: Expr
 
+    ThisExpr* = ref object of Expr
+        keyword*: Token
+
     Unary* = ref object of Expr
         operator*: Token
         right*: Expr
