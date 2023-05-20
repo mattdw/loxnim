@@ -1,7 +1,6 @@
 import std/tables
 import std/strformat
 
-import ast
 import loxtypes
 import error
 import token

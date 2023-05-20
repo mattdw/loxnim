@@ -6,7 +6,6 @@ import loxtypes
 import scanner
 import token
 import parser
-import ast
 import interpreter
 import error
 import resolver

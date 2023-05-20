@@ -5,7 +5,6 @@ import std/tables
 
 import loxtypes
 import loxclass
-import ast
 import token
 import error
 import environment

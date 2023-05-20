@@ -2,6 +2,14 @@ import std/tables
 import std/strformat
 import std/options
 
+
+var lastId = 0
+
+proc nextId*(): int =
+    lastId += 1
+    result = lastId
+
+
 type
     TokenType* = enum
         LEFT_PAREN, RIGHT_PAREN, LEFT_BRACE, RIGHT_BRACE,
