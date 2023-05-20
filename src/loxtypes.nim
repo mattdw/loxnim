@@ -1,5 +1,6 @@
 import std/tables
 import std/strformat
+import std/options
 
 type
     TokenType* = enum
@@ -13,6 +14,106 @@ type
         AND, CLASS, ELSE, FALSE, FUN, FOR, IF, NIL, OR, PRINT, RETURN, SUPER, THIS, TRUE, VAR, WHILE
 
         EOF
+
+    FunctionType* = enum
+        t_FUNCTION,
+        t_METHOD
+
+    ##
+
+    Token* = object
+        typ*: TokenType
+        lexeme*: string
+        literal*: Option[LoxObj]
+        line*: int
+
+    # Expression types
+
+    Expr* = ref object of RootObj
+        id*: int
+
+    Assign* = ref object of Expr
+        name*: Token
+        value*: Expr
+
+    Binary* = ref object of Expr
+        left*: Expr
+        operator*: Token
+        right*: Expr
+
+    Call* = ref object of Expr
+        callee*: Expr
+        paren*: Token
+        arguments*: seq[Expr]
+
+    Get* = ref object of Expr
+        obj*: Expr
+        name*: Token
+
+    Grouping* = ref object of Expr
+        expression*: Expr
+
+    Literal* = ref object of Expr
+        value*: LoxObj
+
+    Logical* = ref object of Expr
+        left*: Expr
+        operator*: Token
+        right*: Expr
+
+    SetExpr* = ref object of Expr
+        obj*: Expr
+        name*: Token
+        value*: Expr
+
+    Unary* = ref object of Expr
+        operator*: Token
+        right*: Expr
+
+    Variable* = ref object of Expr
+        name*: Token
+
+    # Statement types
+
+    Stmt* = ref object of RootObj
+        id*: int
+
+    Block* = ref object of Stmt
+        statements*: seq[Stmt]
+
+    ClassStmt* = ref object of Stmt
+        name*: Token
+        methods*: seq[Function]
+
+    ExprStmt* = ref object of Stmt
+        expression*: Expr
+
+    Function* = ref object of Stmt
+        name*: Token
+        params*: seq[Token]
+        body*: seq[Stmt]
+
+    IfStmt* = ref object of Stmt
+        condition*: Expr
+        thenBranch*: Stmt
+        elseBranch*: Stmt
+
+    PrintStmt* = ref object of Stmt
+        expression*: Expr
+
+    ReturnStmt* = ref object of Stmt
+        keyword*: Token
+        value*: Expr
+
+    VarStmt* = ref object of Stmt
+        name*: Token
+        initializer*: Expr
+
+    WhileStmt* = ref object of Stmt
+        condition*: Expr
+        body*: Stmt
+
+    ##
 
     LoxObj* = ref object of RootObj
 
@@ -45,6 +146,10 @@ type
         # arity*: int
         # call*: proc(interp: var LoxInterp, args: varargs[LoxObj]): LoxObj
 
+    LoxFunction* = ref object of LoxCallable
+        declaration*: Function
+        closure*: Environment
+
     Lox* = object
         interpreter*: LoxInterp
         hadError*: bool
@@ -75,30 +180,3 @@ proc newLoxString*(v: string): LoxString =
 
 proc newLoxNumber*(v: float): LoxNumber =
     result = LoxNumber(value: v)
-
-
-func `$`*(x: LoxNumber): string =
-    result = fmt"{x.value}"
-    if result[^2..^1] == ".0":
-        result = result[0..^3]
-
-func `$`*(x: LoxString): string =
-    x.value
-
-func `$`*(x: LoxBool): string =
-    $x.value
-
-func `$`*(x: LoxNil): string =
-    "nil"
-
-
-func `$`*(x: LoxObj): string =
-    if x of LoxNumber:
-        return $LoxNumber(x)
-    if x of LoxString:
-        return $LoxString(x)
-    if x of LoxBool:
-        return $LoxBool(x)
-    if x of LoxNil:
-        return $LoxNil(x)
-

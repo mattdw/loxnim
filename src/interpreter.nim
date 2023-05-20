@@ -3,17 +3,15 @@ import std/times
 import std/strutils
 import std/tables
 
-import ast
 import loxtypes
+import loxclass
+import ast
 import token
 import error
 import environment
+import printers
 
 type
-    LoxFunction* = ref object of LoxCallable
-        declaration: Function
-        closure: Environment
-
     Clock* = ref object of LoxCallable
     Mod* = ref object of LoxCallable
     Format* = ref object of LoxCallable
@@ -138,6 +136,13 @@ method eval(self: var LoxInterp, exp: Expr): LoxObj {.base.} =
     raise (ref RuntimeError)(msg: "Reached LoxObj base eval!")
     LoxNil()
 
+method eval(self: var LoxInterp, exp: Get): LoxObj =
+    let o = self.eval(exp.obj)
+    if o of LoxInstance:
+        return LoxInstance(o).get(exp.name)
+
+    raise (ref RuntimeError)(msg: fmt"{exp.name}: Only instances have properties.")
+
 method eval(self: var LoxInterp, exp: Literal): LoxObj =
     exp.value
 
@@ -150,6 +155,15 @@ method eval(self: var LoxInterp, exp: Logical): LoxObj =
         if not isTruthy(left): return left
 
     return self.eval(exp.right)
+
+method eval(self: var LoxInterp, exp: SetExpr): LoxObj =
+    let o = self.eval(exp.obj)
+
+    if not (o of LoxInstance):
+        raise (ref RuntimeError)(msg: fmt"{exp.name}: Only instances have fields.")
+
+    let value = self.eval(exp.value)
+    LoxInstance(o).set(exp.name, value)
 
 method eval(self: var LoxInterp, exp: Variable): LoxObj =
     if self.locals.hasKey(exp.id):
@@ -239,7 +253,7 @@ method eval(self: var LoxInterp, stmt: PrintStmt) =
     let val = self.eval(stmt.expression)
     echo val
 
-method eval(self: var LoxInterp, stmt: ast.Return) =
+method eval(self: var LoxInterp, stmt: ReturnStmt) =
     var val: LoxObj = LoxNil()
     if not stmt.value.isNil:
         val = self.eval(stmt.value)
@@ -297,6 +311,21 @@ method eval(self: var LoxInterp, stmt: IfStmt) =
 method eval(self: var LoxInterp, stmt: WhileStmt) =
     while isTruthy(self.eval(stmt.condition)):
         self.eval(stmt.body)
+
+method arity(fobj: LoxClass): int = 0
+method call(self: var LoxInterp, fobj: LoxClass, args: varargs[LoxObj]): LoxObj =
+    result = newInstance(fobj)
+
+method eval(self: var LoxInterp, stmt: ClassStmt) =
+    self.env.define(stmt.name.lexeme, nil)
+
+    var methods = Table[string, LoxFunction]()
+    for meth in stmt.methods:
+        let function = LoxFunction(declaration: meth, closure: self.env)
+        methods[meth.name.lexeme] = function
+
+    let klass = LoxClass(name: stmt.name.lexeme, methods: methods)
+    self.env.assign(stmt.name, klass)
 
 proc interpret*(self: var LoxInterp, statements: seq[Stmt]) =
     try:

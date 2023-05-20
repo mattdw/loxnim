@@ -4,7 +4,6 @@ import loxtypes
 import ast
 import token
 import error
-import loxtypes
 
 proc newResolver*(interp: LoxInterp): LoxResolver =
     result = LoxResolver(interp: interp, scopes: newSeq[Table[string, bool]]())
@@ -54,13 +53,16 @@ proc resolveLocal(self: var LoxResolver, exp: Expr, name: Token) =
             return
 
 proc resolve*(self: var LoxResolver, stmts: seq[Stmt])
-proc resolveFunction(self: var LoxResolver, function: Function) =
+proc resolveFunction(self: var LoxResolver, function: Function, functionType: FunctionType) =
     self.beginScope()
     for param in function.params:
         self.declare(param)
         self.define(param)
     self.resolve(function.body)
     self.endScope()
+
+proc resolveFunction(self: var LoxResolver, function: Function) =
+    resolveFunction(self, function, FunctionType.t_FUNCTION)
 
 method resolve(self: var LoxResolver, exp: Variable) =
     if not self.scopesEmpty() and
@@ -85,7 +87,7 @@ method resolve(self: var LoxResolver, stmt: IfStmt) =
 method resolve(self: var LoxResolver, stmt: PrintStmt) =
     self.resolve(stmt.expression)
 
-method resolve(self: var LoxResolver, stmt: ast.Return) =
+method resolve(self: var LoxResolver, stmt: ReturnStmt) =
     if stmt.value != nil:
         self.resolve(stmt.value)
 
@@ -102,6 +104,13 @@ method resolve(self: var LoxResolver, exp: Call) =
 
     for a in exp.arguments:
         self.resolve(a)
+
+method resolve(self: var LoxResolver, exp: Get) =
+    self.resolve(exp.obj)
+
+method resolve(self: var LoxResolver, exp: SetExpr) =
+    self.resolve(exp.value)
+    self.resolve(exp.obj)
 
 method resolve(self: var LoxResolver, exp: Grouping) =
     self.resolve(exp.expression)
@@ -127,6 +136,14 @@ method resolve(self: var LoxResolver, stmt: VarStmt) =
     if not stmt.initializer.isNil:
         self.resolve(stmt.initializer)
     self.define(stmt.name)
+
+method resolve(self: var LoxResolver, stmt: ClassStmt) =
+    self.declare(stmt.name)
+    self.define(stmt.name)
+
+    for `method` in stmt.methods:
+        let decl = FunctionType.t_METHOD
+        self.resolveFunction(`method`, decl)
 
 proc resolve*(self: var LoxResolver, stmts: seq[Stmt]) =
     for s in stmts:

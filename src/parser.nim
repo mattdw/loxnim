@@ -105,6 +105,9 @@ proc call(self: var Parser): Expr =
     while true:
         if self.match(LEFT_PAREN):
             result = self.finishCall(result)
+        elif self.match(DOT):
+            let name = self.consume(IDENTIFIER, "Expect property name after '.'.")
+            result = Get(obj: result, name: name)
         else:
             break
 
@@ -176,6 +179,9 @@ proc assignment(self: var Parser): Expr =
         if exp of Variable:
             let name = Variable(exp).name
             return Assign(name: name, value: value)
+        elif exp of Get:
+            let get = Get(exp)
+            return SetExpr(obj: get.obj, name: get.name, value: value)
 
         raise self.error(equals, "Invalid assignment target.")
 
@@ -286,7 +292,7 @@ proc returnStatement(self: var Parser): Stmt =
 
     discard self.consume(SEMICOLON, "Expect ';' after return value.")
 
-    return ast.Return(keyword: keyword, value: value)
+    return ReturnStmt(keyword: keyword, value: value)
 
 proc function(self: var Parser, kind: string): Function =
     let name = self.consume(IDENTIFIER, fmt"Expect {kind} name.")
@@ -309,8 +315,21 @@ proc function(self: var Parser, kind: string): Function =
 
     result = Function(name: name, params: params, body: body)
 
+proc classDeclaration(self: var Parser): ClassStmt =
+    let name = self.consume(IDENTIFIER, "Expect class name.")
+    discard self.consume(LEFT_BRACE, "Expect '{' before class body.")
+
+    var methods = newSeq[Function]()
+    while not self.check(RIGHT_BRACE) and not self.isAtEnd():
+        methods.add(self.function("method"))
+
+    discard self.consume(RIGHT_BRACE, "Expect '}' after class body.")
+
+    return ClassStmt(name: name, methods: methods)
+
 proc declaration(self: var Parser): Stmt =
     try:
+        if self.match(CLASS): return self.classDeclaration()
         if self.match(FUN): return self.function("function")
         if self.match(VAR): return self.varDeclaration()
         return self.statement()

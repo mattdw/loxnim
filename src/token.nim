@@ -3,14 +3,6 @@ import options
 
 import loxtypes
 
-type
-    Token* = object
-        typ: TokenType
-        lexeme: string
-        literal: Option[LoxObj]
-        line: int
-
-
 proc newToken*(typ: TokenType, lexeme: string, literal: Option[LoxObj], line: int): Token =
     result.typ = typ
     result.lexeme = lexeme
