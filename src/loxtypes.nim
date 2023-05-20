@@ -31,13 +31,13 @@ type
         enclosing*: Environment
         values*: Table[string, LoxObj]
 
-    LoxInterp* = object
+    LoxInterp* = ref object
         lox*: ref Lox
         globals*: Environment
         env*: Environment
-        locals*: Table[RootObj, int]
+        locals*: Table[int, int]
 
-    LoxResolver* = object
+    LoxResolver* = ref object
         interp*: LoxInterp
         scopes*: seq[Table[string, bool]]
 

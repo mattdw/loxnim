@@ -1,6 +1,7 @@
 import std/strformat
 import std/times
 import std/strutils
+import std/tables
 
 import ast
 import loxtypes
@@ -69,9 +70,11 @@ method call(self: var LoxInterp, fobj: Mod, args: varargs[LoxObj]): LoxObj =
 
 
 proc newInterpreter*(lox: ref Lox): LoxInterp =
+    result = LoxInterp()
     result.lox = lox
     result.globals = newEnvironment()
     result.env = result.globals
+    result.locals = Table[int, int]()
 
     result.globals.define("clock", Clock())
     result.globals.define("format", Format())
@@ -149,7 +152,11 @@ method eval(self: var LoxInterp, exp: Logical): LoxObj =
     return self.eval(exp.right)
 
 method eval(self: var LoxInterp, exp: Variable): LoxObj =
-    self.env.get(exp.name)
+    if self.locals.hasKey(exp.id):
+        let dist: int = self.locals[exp.id]
+        return self.env.getAt(dist, exp.name.lexeme)
+    else:
+        return self.globals.get(exp.name)
 
 method eval(self: var LoxInterp, exp: Grouping): LoxObj =
     self.eval(exp.expression)

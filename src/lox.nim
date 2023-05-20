@@ -1,5 +1,6 @@
 import std/os
 import system
+import std/tables
 
 import loxtypes
 import scanner
@@ -8,6 +9,7 @@ import parser
 import ast
 import interpreter
 import error
+import resolver
 
 proc run(self: var Lox, source: string) =
     var scanner = newScanner(self, source)
@@ -19,6 +21,9 @@ proc run(self: var Lox, source: string) =
 
     if self.hadError:
         return
+
+    var resolver = newResolver(self.interpreter)
+    resolver.resolve(stmts)
 
     self.interpreter.interpret(stmts)
 

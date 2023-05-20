@@ -26,7 +26,17 @@ proc get*(env: var Environment, name: Token): LoxObj =
     if not env.enclosing.isNil:
         return env.enclosing.get(name)
 
-    raise (ref RuntimeError)(msg: fmt"Undefined variable '{name.lexeme}'.")
+    raise (ref RuntimeError)(msg: fmt"[Line {name.line}] Undefined variable '{name.lexeme}'.")
+
+proc ancestor(self: var Environment, distance: int): Environment =
+    var env = self
+    for i in 0..(distance - 1):
+        env = env.enclosing
+
+    result = env
+
+proc getAt*(env: var Environment, distance: int, name: string): LoxObj =
+    return env.ancestor(distance).values[name]
 
 proc assign*(env: var Environment, name: Token, value: LoxObj) =
     if env.values.hasKey(name.lexeme):
@@ -37,4 +47,4 @@ proc assign*(env: var Environment, name: Token, value: LoxObj) =
         env.enclosing.assign(name, value)
         return
 
-    raise (ref RuntimeError)(msg: fmt"Undefined variable '{name.lexeme}'.")
+    raise (ref RuntimeError)(msg: fmt"[Line {name.line}] Undefined variable '{name.lexeme}'.")

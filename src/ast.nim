@@ -7,6 +7,7 @@ type
     # Expression types
 
     Expr* = ref object of RootObj
+        id*: int
 
     Assign* = ref object of Expr
         name*: Token
@@ -43,6 +44,7 @@ type
     # Statement types
 
     Stmt* = ref object of RootObj
+        id*: int
 
     Block* = ref object of Stmt
         statements*: seq[Stmt]
@@ -97,3 +99,10 @@ method pp*(exp: Literal): string =
 
 method pp*(exp: Unary): string =
     return parenthesize(exp.operator.lexeme, exp.right)
+
+
+var lastId = 0
+
+proc nextId*(): int =
+    lastId += 1
+    result = lastId

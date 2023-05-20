@@ -4,12 +4,19 @@ import loxtypes
 import ast
 import token
 import error
+import loxtypes
 
+proc newResolver*(interp: LoxInterp): LoxResolver =
+    result = LoxResolver(interp: interp, scopes: newSeq[Table[string, bool]]())
+    # result.scopes.add(Table[string, bool]())
 
 method resolve(self: var LoxResolver, exp: Expr) {.base.} =
+    echo "reached base case resolve/exp"
+    echo repr(exp)
     discard
 
 method resolve(self: var LoxResolver, stmt: Stmt) {.base.} =
+    echo "reached base case resolve/stmt"
     discard
 
 
@@ -21,31 +28,32 @@ func peek[T](l: seq[T]): T =
 
 proc declare(self: var LoxResolver, name: Token) =
     if self.scopesEmpty(): return
-
-    var scope = self.scopes[self.scopes.high()]
-    scope[name.lexeme] = false
+    self.scopes[self.scopes.high()][name.lexeme] = false
 
 proc define(self: var LoxResolver, name: Token) =
     if self.scopesEmpty(): return
-    var scope = self.scopes[self.scopes.high()]
-    scope[name.lexeme] = true
+    self.scopes[self.scopes.high()][name.lexeme] = true
 
 proc beginScope(self: var LoxResolver) =
-    self.scopes.add(newTable[string, bool]()[])
+    self.scopes.add(Table[string, bool]())
 
 proc endScope(self: var LoxResolver) =
     discard self.scopes.pop()
 
-proc resolve(self: var LoxResolver, exp: Expr, depth: int) =
-    self.interp.locals[exp] = depth
+proc resolve(self: var LoxInterp, exp: Expr, depth: int) =
+    if exp.id == 0:
+        exp.id = nextId()
+    self.locals[exp.id] = depth
 
 proc resolveLocal(self: var LoxResolver, exp: Expr, name: Token) =
-    for i in self.scopes.high()..self.scopes.low():
+    if self.scopesEmpty():
+        return
+    for i in countDown(self.scopes.high(), self.scopes.low()):
         if self.scopes[i].hasKey(name.lexeme):
-            self.resolve(exp, self.scopes.len() - 1 - i)
+            self.interp.resolve(exp, self.scopes.high() - i)
             return
 
-proc resolve(self: var LoxResolver, stmts: seq[Stmt])
+proc resolve*(self: var LoxResolver, stmts: seq[Stmt])
 proc resolveFunction(self: var LoxResolver, function: Function) =
     self.beginScope()
     for param in function.params:
@@ -56,7 +64,7 @@ proc resolveFunction(self: var LoxResolver, function: Function) =
 
 method resolve(self: var LoxResolver, exp: Variable) =
     if not self.scopesEmpty() and
-    self.scopes.peek().getOrDefault(exp.name.lexeme, false) == false:
+    self.scopes.peek().getOrDefault(exp.name.lexeme, true) == false:
         self.interp.lox[].error(exp.name, "Can't read local variable in its own initializer.")
 
     self.resolveLocal(exp, exp.name)
@@ -114,7 +122,13 @@ method resolve(self: var LoxResolver, stmt: Function) =
 
     self.resolveFunction(stmt)
 
-proc resolve(self: var LoxResolver, stmts: seq[Stmt]) =
+method resolve(self: var LoxResolver, stmt: VarStmt) =
+    self.declare(stmt.name)
+    if not stmt.initializer.isNil:
+        self.resolve(stmt.initializer)
+    self.define(stmt.name)
+
+proc resolve*(self: var LoxResolver, stmts: seq[Stmt]) =
     for s in stmts:
         self.resolve(s)
 
